@@ -1,0 +1,255 @@
+{
+  "info": {
+    "name": "URL Shortener API",
+    "_postman_id": "12345678-abcd-efgh-ijkl-1234567890ab",
+    "description": "Postman collection for V1 and V2 URL Shortener API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "V1 - Shorten URL",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"url\": \"https://example.com\",\n  \"expiry_date\": \"2025-12-31\",\n  \"custom_code\": \"\",\n  \"password\": \"\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/shorten",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "shorten"]
+        }
+      }
+    },
+    {
+      "name": "V1 - Redirect",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/v1/redirect?code=abc123&password=",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "redirect"],
+          "query": [
+            { "key": "code", "value": "abc123" },
+            { "key": "password", "value": "" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "V1 - Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/v1/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "health"]
+        }
+      }
+    },
+    {
+      "name": "V1 - Forbidden",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/v1/forbidden",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "forbidden"]
+        }
+      }
+    },
+    {
+      "name": "V1 - Update Expiry",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"expiry_date\": \"2025-12-31\" }" },
+        "url": {
+          "raw": "http://localhost:3000/v1/updateExpiryDate/abc123",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "updateExpiryDate", "abc123"]
+        }
+      }
+    },
+    {
+      "name": "V1 - Delete Short Code",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/v1/shorten/abc123",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "shorten", "abc123"]
+        }
+      }
+    },
+    {
+      "name": "V1 - Bulk Shorten",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"original_data\": [ { \"url\": \"https://example1.com\" }, { \"url\": \"https://example2.com\", \"custom_code\": \"custom123\" } ] }"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v1/shorten/bulk",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v1", "shorten", "bulk"]
+        }
+      }
+    },
+    {
+      "name": "V2 - Shorten URL",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer <API_KEY>" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"url\": \"https://example.com\", \"expiry_date\": \"2025-12-31\", \"custom_code\": \"\", \"password\": \"pass123\" }"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v2/shorten",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v2", "shorten"]
+        }
+      }
+    },
+    {
+      "name": "V2 - Redirect",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/v2/redirect?code=abc123&password=pass123",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v2", "redirect"],
+          "query": [
+            { "key": "code", "value": "abc123" },
+            { "key": "password", "value": "pass123" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "V2 - List User URLs",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer <API_KEY>" }],
+        "url": {
+          "raw": "http://localhost:3000/v2/shortenedUrls",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v2", "shortenedUrls"]
+        }
+      }
+    },
+    {
+      "name": "V2 - Update Expiry",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer <API_KEY>" }
+        ],
+        "body": { "mode": "raw", "raw": "{ \"expiry_date\": \"2025-12-31\" }" },
+        "url": {
+          "raw": "http://localhost:3000/v2/updateExpiryDate/abc123",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v2", "updateExpiryDate", "abc123"]
+        }
+      }
+    },
+    {
+      "name": "V2 - Delete Short Code",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer <API_KEY>" }],
+        "url": {
+          "raw": "http://localhost:3000/v2/shorten/abc123",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v2", "shorten", "abc123"]
+        }
+      }
+    },
+    {
+      "name": "V2 - Bulk Shorten",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer <API_KEY>" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"original_data\": [ { \"url\": \"https://example1.com\" }, { \"url\": \"https://example2.com\", \"custom_code\": \"custom123\" } ] }"
+        },
+        "url": {
+          "raw": "http://localhost:3000/v2/shorten/bulk",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v2", "shorten", "bulk"]
+        }
+      }
+    },
+    {
+      "name": "V2 - Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/v2/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v2", "health"]
+        }
+      }
+    },
+    {
+      "name": "V2 - Forbidden",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/v2/forbidden",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["v2", "forbidden"]
+        }
+      }
+    }
+  ]
+}

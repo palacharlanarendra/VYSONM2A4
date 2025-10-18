@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 
   next();
 });
-
+const cacheObj = {};
 // Shorten URL
 app.post("/v1/shorten", async (req, res) => {
   const inputUrl = req.body.url;
@@ -231,6 +231,10 @@ app.get("/v2/redirect", async (req, res) => {
   if (!shortCode) return res.status(400).json({ error: "Short code is required!" });
 
   try {
+    if(cacheObj[shortCode]){
+      console.log("cache hit")
+      return res.status(200).json({url: cacheObj[shortCode]});
+    }
     const rowData = await UrlShortner.findOne({ where: { short_code: shortCode } });
     if (!rowData) return res.status(404).json({ error: "Short code not found" });
 
@@ -242,6 +246,8 @@ app.get("/v2/redirect", async (req, res) => {
 
     await rowData.update({ click_count: Number(rowData.click_count) + 1, last_accessed_at: new Date() });
 
+    cacheObj[shortCode] = rowData.original_url;
+    console.log("db hit")
     return res.status(200).json({ url: rowData.original_url });
   } catch (err) {
     return res.status(500).json({ error: err.message });

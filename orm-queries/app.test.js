@@ -43,7 +43,11 @@ describe("API Integration Tests v2", () => {
       .send({ url: "https://example.com/", password: "secret123" });
     
     const shortCode = response.body.short_code;
-  
+    await request(app)
+    .get("/v2/redirect")
+    .set("api_key", "abc123xyz")
+    .query({ code: shortCode, password: "secret123" });
+
     const redirectResponse = await request(app)
       .get("/v2/redirect")
       .set("api_key", "abc123xyz")

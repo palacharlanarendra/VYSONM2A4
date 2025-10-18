@@ -1,0 +1,16 @@
+{
+    "name": "redirect-benchmark",
+    "version": "1.0.0",
+    "description": "Test 100 requests to redirect endpoint and measure performance",
+    "main": "redirectCount.js",
+    "type": "commonjs",
+    "scripts": {
+      "start": "node redirectCount.js"
+    },
+    "author": "Narendra",
+    "license": "MIT",
+    "dependencies": {
+      "node-fetch": "^3.4.0"
+    }
+  }
+  

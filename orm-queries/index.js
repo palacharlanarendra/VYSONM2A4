@@ -8,17 +8,22 @@ const requestLogger = require("./middlewares/requestLogger.js");
 const apiKeyAuth = require("./middlewares/apiKeyAuth.js");
 const blacklistApiKey = require("./middlewares/blacklistApiKey.js");
 const responseTimelogger = require("./middlewares/responseTimelogger.js");
+const rateLimitter = require("./middlewares/rateLimitter.js");
+const apiKeyRateLimitter = require("./middlewares/apiKeyRateLimitter.js");
 const {
   observabilityMiddleware,
   sentryErrorHandler,
 } = require("./middlewares/observabilityMiddleware.js");
+const { setCache, getCache, deleteCache } = require("./redisClient.js");
+// const rateLimitterByPlan = require("./middlewares/rateLimitterByPlan.js");
 
 require("./initialise.js");
 
 app.use(express.json());
 app.use(requestLogger);
 app.use(responseTimelogger);
-app.use(observabilityMiddleware);
+// app.use(observabilityMiddleware);
+app.use("/v2", apiKeyRateLimitter);
 app.use((req, res, next) => {
   const url = req.url;
 
@@ -31,23 +36,22 @@ app.use((req, res, next) => {
 
   next();
 });
-const cacheObj = {};
 // Shorten URL
 app.post("/v1/shorten", async (req, res) => {
   const inputUrl = req.body.url;
   const expiryDate = req.body.expiry_date;
   const customCode = req.body.custom_code;
   const password = req.body.password;
-
+  
   if (customCode) {
     const exists = await UrlShortner.findOne({ where: { short_code: customCode } });
     if (exists) return res.status(400).json({ error: "Custom code is already taken!" });
   }
-
+  
   if (!inputUrl || inputUrl.trim() === "") return res.status(400).json({ error: "Input URI cannot be empty!" });
-
+  
   let generatedShortCode = customCode || generateShortCode();
-
+  
   try {
     const newUrl = await UrlShortner.create({
       original_url: inputUrl,
@@ -95,7 +99,7 @@ app.get("/v1/redirect", async (req, res) => {
     }
 
     await rowData.update({ click_count: Number(rowData.click_count) + 1, last_accessed_at: new Date() });
-
+    await setCache(shortCode, { url: rowData.original_url });
     return res.status(200).json({ url: rowData.original_url });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -103,7 +107,7 @@ app.get("/v1/redirect", async (req, res) => {
 });
 
 // Health check
-app.get("/v1/health", (req, res) => res.status(200).json({ success: "working!" }));
+app.get("/v1/health",rateLimitter, (req, res) => res.status(200).json({ success: "working!" }));
 
 // Forbidden
 app.get("/v1/forbidden", (req, res) => res.status(403).json({ error: "Forbidden request" }));
@@ -121,6 +125,7 @@ app.post("/v1/updateExpiryDate/:code", async (req, res) => {
 
   try {
     await UrlShortner.update({ expiry_date: new Date(expiryDate) }, { where: { short_code: code } });
+    await setCache(code, { url: rowData.original_url });
     return res.status(200).json({ message: "Expiry date updated successfully", short_code: code, expiry_date: expiryDate });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -138,6 +143,7 @@ app.delete("/v1/shorten/:code", async (req, res) => {
 
   try {
     await UrlShortner.update({ isDeleted: true }, { where: { short_code: code } });
+    await deleteCache(shortCode);
     return res.status(200).json({ message: "Short code deleted successfully" });
   } catch (err) {
     return res.status(500).json({ error: "Internal server error" });
@@ -223,6 +229,7 @@ app.post("/v2/shorten", apiKeyAuth, async (req, res) => {
   }
 });
 
+// const cacheObj = {};
 // Redirect
 app.get("/v2/redirect", async (req, res) => {
   const shortCode = req.query.code;
@@ -231,23 +238,34 @@ app.get("/v2/redirect", async (req, res) => {
   if (!shortCode) return res.status(400).json({ error: "Short code is required!" });
 
   try {
-    if(cacheObj[shortCode]){
-      console.log("cache hit")
-      return res.status(200).json({url: cacheObj[shortCode]});
+    // ✅ Set the response header correctly
+    // res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+
+    // Check cache first
+    // if (cacheObj[shortCode]) {
+    //   console.log("cache hit");
+    //   return res.status(200).json({ url: cacheObj[shortCode] });
+    // }
+    const cached = await getCache(shortCode);
+    if (cached) {
+      console.log("cache hit");
+      return res.status(200).json(cached);
     }
+
     const rowData = await UrlShortner.findOne({ where: { short_code: shortCode } });
     if (!rowData) return res.status(404).json({ error: "Short code not found" });
 
     if (rowData.password && password !== rowData.password) {
-      return res.status(401).json({ error: rowData.password ? "Password required or invalid" : null });
+      return res.status(401).json({ error: "Password required or invalid" });
     }
 
-    if (rowData.expiry_date && Date.now() > rowData.expiry_date) return res.status(410).json({ error: "Short code is expired!" });
+    if (rowData.expiry_date && Date.now() > rowData.expiry_date) {
+      return res.status(410).json({ error: "Short code is expired!" });
+    }
 
     await rowData.update({ click_count: Number(rowData.click_count) + 1, last_accessed_at: new Date() });
-
-    cacheObj[shortCode] = rowData.original_url;
-    console.log("db hit")
+    // cacheObj[shortCode] = rowData.original_url;
+    await setCache(shortCode, { url: rowData.original_url });
     return res.status(200).json({ url: rowData.original_url });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -290,7 +308,17 @@ app.post("/v2/updateExpiryDate/:code", apiKeyAuth, async (req, res) => {
   if (!rowData) return res.status(404).json({ error: "Short code not found" });
 
   try {
-    await UrlShortner.update({ expiry_date: new Date(expiryDate) }, { where: { short_code: code } });
+    const now = new Date();
+    const expiry = new Date(expiryDate);
+    const ttlInSeconds = Math.floor((expiry - now) / 1000); // in seconds
+
+    // prevent invalid or past dates
+    if (ttlInSeconds <= 0)
+      return res.status(400).json({ error: "Expiry date must be in the future" });
+
+    await UrlShortner.update({ expiry_date: expiry }, { where: { short_code: code } });
+
+    await setCache(code, { url: rowData.original_url }, ttlInSeconds);
     return res.status(200).json({ message: "Expiry date updated successfully", short_code: code, expiry_date: expiryDate });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -311,6 +339,7 @@ app.delete("/v2/shorten/:code", apiKeyAuth, async (req, res) => {
 
   try {
     await UrlShortner.update({ isDeleted: true }, { where: { short_code: code } });
+    await deleteCache(code);
     return res.status(200).json({ message: "Short code deleted successfully" });
   } catch (err) {
     return res.status(500).json({ error: "Internal server error" });
@@ -366,6 +395,9 @@ app.post("/v2/shorten/bulk", apiKeyAuth, blacklistApiKey, async (req, res) => {
 app.get("/v2/health", (req, res) => res.status(200).json({ success: "working!" }));
 app.get("/v2/forbidden", (req, res) => res.status(403).json({ error: "Forbidden request" }));
 
+app.use("/v2", (req, res) => {
+  res.status(404).json({ error: "Endpoint not found" });
+});
 app.use(sentryErrorHandler);
 
 app.listen(port, () => console.log(`🚀 App running on port ${port}`));

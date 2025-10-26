@@ -1,7 +1,7 @@
 const path = require("path");
 const fs = require("fs");
-const blackListApiKey = (req, res, next) => {
-  const apiKey = req.headers['api_key'];
+const blackListApiKey = async (req, res, next) => {
+  const apiKey = req.headers['x-api-key'];
   const filePath = path.join(__dirname, '../', 'data.txt');
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: 'File not found' });

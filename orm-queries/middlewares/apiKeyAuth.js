@@ -3,7 +3,7 @@ const timedMiddleware = require("./timedMiddleware.js");
 
 const apiKeyAuth = timedMiddleware("Logger", async (req, res, next) => {
   try {
-    const apiKey = req.headers['api_key'];
+    const apiKey = req.headers['x-api-key'];
     if(!apiKey) {
       return res.status(400).send({error: 'Api key is not provided'});
     }

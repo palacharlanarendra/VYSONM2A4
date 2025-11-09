@@ -14,7 +14,7 @@ const apiKeyAuth = timedMiddleware("Logger", async (req, res, next) => {
     if(user.tier != "enterprise" && req.originalUrl === '/shorten/bulk') {
       return res.status(403).json({ error: "You need to upgrade to enterprise tier" });
     }
-    res.locals.user = user.get({plain: true});
+    req.user = user.get({plain: true});
     next();
   } catch (error) {
     return res.status(500).json({ error: error.message});

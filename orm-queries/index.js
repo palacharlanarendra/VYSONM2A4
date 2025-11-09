@@ -197,7 +197,7 @@ app.post("/v2/shorten", apiKeyAuth, async (req, res) => {
     if (exists) return res.status(400).json({ error: "Custom code is already taken!" });
   }
 
-  const userData = res.locals.user;
+  const userData = req.user;
   if (!userData) return res.status(400).json({ error: "No such user existed!" });
   if (!inputUrl || inputUrl.trim() === "") return res.status(400).json({ error: "Input URI cannot be empty!" });
 
@@ -243,12 +243,10 @@ app.get("/v2/redirect", async (req, res) => {
 
     // Check cache first
     // if (cacheObj[shortCode]) {
-    //   console.log("cache hit");
     //   return res.status(200).json({ url: cacheObj[shortCode] });
     // }
     const cached = await getCache(shortCode);
     if (cached) {
-      console.log("cache hit");
       return res.status(200).json(cached);
     }
 
@@ -274,7 +272,7 @@ app.get("/v2/redirect", async (req, res) => {
 
 // List user URLs
 app.get("/v2/shortenedUrls", apiKeyAuth, blacklistApiKey, async (req, res) => {
-  const userData = res.locals.user;
+  const userData = req.user;
 
   const urls = await UrlShortner.findAll({
     where: { user_id: userData.id },
@@ -298,7 +296,7 @@ app.post("/v2/updateExpiryDate/:code", apiKeyAuth, async (req, res) => {
   const expiryDate = req.body.expiry_date;
   const { code } = req.params;
 
-  const userData = res.locals.user;
+  const userData = req.user;
   if (!userData) return res.status(400).json({ error: "No such user existed!" });
 
   if (!code) return res.status(400).json({ error: "Short code is not provided" });
@@ -328,7 +326,7 @@ app.post("/v2/updateExpiryDate/:code", apiKeyAuth, async (req, res) => {
 // Delete short code
 app.delete("/v2/shorten/:code", apiKeyAuth, async (req, res) => {
   const { code } = req.params;
-  const userData = res.locals.user;
+  const userData = req.user;
 
   if (!userData) return res.status(404).json({ error: "User not found!" });
   if (!code || code.trim() === "") return res.status(400).json({ error: "Short code is required" });
@@ -351,7 +349,7 @@ app.post("/v2/shorten/bulk", apiKeyAuth, blacklistApiKey, async (req, res) => {
   const inputData = req.body.original_data;
   if (!Array.isArray(inputData) || inputData.length === 0) return res.status(400).json({ error: "No input array provided" });
 
-  const userData = res.locals.user;
+  const userData = req.user;
 
   const results = await Promise.all(
     inputData.map(async (data) => {

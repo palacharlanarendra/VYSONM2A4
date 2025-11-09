@@ -8,7 +8,6 @@ const rateLimitter = async (req, res, next) => {
         const ip = req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress;
         const redisKey = `rate_limit:${ip}`;
         const currentCount = await redis.incr(redisKey);
-        console.log(ip, redisKey, currentCount)
         if(currentCount===1){
             await redis.expire(redisKey, WINDOW_SIZE_IN_SECONDS)
         }
